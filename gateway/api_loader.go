@@ -436,6 +436,14 @@ func (gw *Gateway) processSpec(spec *APISpec, apisByListen map[string]int,
 		gw.mwAppendEnabled(&chainArray, &GraphQLGranularAccessMiddleware{BaseMiddleware: baseMid})
 	}
 
+	if upstreamBasicAuthMw := getUpstreamBasicAuthMw(baseMid); upstreamBasicAuthMw != nil {
+		gw.mwAppendEnabled(&chainArray, upstreamBasicAuthMw)
+	}
+
+	if upstreamOAuthMw := getUpstreamOAuthMw(baseMid); upstreamOAuthMw != nil {
+		gw.mwAppendEnabled(&chainArray, upstreamOAuthMw)
+	}
+
 	gw.mwAppendEnabled(&chainArray, &ValidateJSON{BaseMiddleware: baseMid})
 	gw.mwAppendEnabled(&chainArray, &ValidateRequest{BaseMiddleware: baseMid})
 	gw.mwAppendEnabled(&chainArray, &PersistGraphQLOperationMiddleware{BaseMiddleware: baseMid})
@@ -470,10 +478,6 @@ func (gw *Gateway) processSpec(spec *APISpec, apisByListen map[string]int,
 			chainArray = append(chainArray, gw.createDynamicMiddleware(obj.Name, false, obj.RequireSession, baseMid))
 		}
 	}
-
-	gw.mwAppendEnabled(&chainArray, &UpstreamBasicAuth{BaseMiddleware: baseMid})
-	gw.mwAppendEnabled(&chainArray, &UpstreamOAuth{BaseMiddleware: baseMid})
-
 	chain = alice.New(chainArray...).Then(&DummyProxyHandler{SH: SuccessHandler{baseMid}, Gw: gw})
 
 	if !spec.UseKeylessAccess {
@@ -920,6 +924,20 @@ func (gw *Gateway) loadGraphQLPlayground(spec *APISpec, subrouter *mux.Router) {
 	})
 }
 
+func sortSpecsByListenPath(specs []*APISpec) {
+	// sort by listen path from longer to shorter, so that /foo
+	// doesn't break /foo-bar
+	sort.Slice(specs, func(i, j int) bool {
+		// we sort by the following rules:
+		// - decreasing order of listen path length
+		// - if a domain is empty it should be at the end
+		if (specs[i].Domain == "") != (specs[j].Domain == "") {
+			return specs[i].Domain != ""
+		}
+		return len(specs[i].Proxy.ListenPath) > len(specs[j].Proxy.ListenPath)
+	})
+}
+
 // Create the individual API (app) specs based on live configurations and assign middleware
 func (gw *Gateway) loadApps(specs []*APISpec) {
 	mainLog.Info("Loading API configurations.")
@@ -927,14 +945,7 @@ func (gw *Gateway) loadApps(specs []*APISpec) {
 	tmpSpecRegister := make(map[string]*APISpec)
 	tmpSpecHandles := new(sync.Map)
 
-	// sort by listen path from longer to shorter, so that /foo
-	// doesn't break /foo-bar
-	sort.Slice(specs, func(i, j int) bool {
-		if specs[i].Domain != specs[j].Domain {
-			return len(specs[i].Domain) > len(specs[j].Domain)
-		}
-		return len(specs[i].Proxy.ListenPath) > len(specs[j].Proxy.ListenPath)
-	})
+	sortSpecsByListenPath(specs)
 
 	// Create a new handler for each API spec
 	apisByListen := countApisByListenHash(specs)

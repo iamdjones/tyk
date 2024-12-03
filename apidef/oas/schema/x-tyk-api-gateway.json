@@ -1090,6 +1090,7 @@
     },
     "X-Tyk-OIDC": {
       "type": "object",
+      "description": "Support for external OAuth Middleware will be deprecated starting from 5.7.0. To avoid any disruptions, we recommend that you use JSON Web Token (JWT) instead, as explained in https://tyk.io/docs/basic-config-and-security/security/authentication-authorization/openid-connect/",
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -1634,6 +1635,7 @@
     },
     "X-Tyk-ExternalOAuth": {
       "type": "object",
+      "description": "Support for external OAuth Middleware will be deprecated starting from 5.7.0. To avoid any disruptions, we recommend that you use JSON Web Token (JWT) instead, as explained in https://tyk.io/docs/basic-config-and-security/security/authentication-authorization/ext-oauth-middleware/",
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -2020,44 +2022,134 @@
         "enabled": {
           "type": "boolean"
         },
-        "headerName": {
-          "type": "string"
+        "header": {
+          "$ref": "#/definitions/X-Tyk-UpstreamAuthSource"
         },
         "username": {
-          "type": "string"
+          "$ref": "#/definitions/X-Tyk-NonEmptyString"
         },
         "password": {
-          "type": "string"
+          "$ref": "#/definitions/X-Tyk-NonEmptyString"
         }
       },
       "required": [
-        "enabled"
+        "enabled",
+        "username",
+        "password"
       ]
     },
     "X-Tyk-UpstreamOAuth": {
-      "type":"object",
+      "type": "object",
       "properties": {
         "enabled": {
           "type": "boolean"
+        },
+        "allowedAuthorizeTypes": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "enum": [
+              "clientCredentials",
+              "password"
+            ]
+          },
+          "minItems": 0
         },
         "clientCredentials": {
           "type": "object",
           "properties": {
             "clientId": {
-              "type": "string"
+              "$ref": "#/definitions/X-Tyk-NonEmptyString"
             },
             "clientSecret": {
-              "type": "string"
+              "$ref": "#/definitions/X-Tyk-NonEmptyString"
             },
             "tokenUrl": {
-              "type": "string"
+              "$ref": "#/definitions/X-Tyk-NonEmptyString"
             },
-            "scopes":{
-              "type": ["array", "null"]
+            "scopes": {
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "header": {
+              "$ref": "#/definitions/X-Tyk-UpstreamAuthSource"
+            },
+            "extraMetadata": {
+              "type": [
+                "array",
+                "null"
+              ]
             }
-          }
+          },
+          "required": [
+            "clientId",
+            "clientSecret",
+            "tokenUrl"
+          ]
         },
-        "headerName": {
+        "password": {
+          "type": "object",
+          "properties": {
+            "clientId": {
+              "$ref": "#/definitions/X-Tyk-NonEmptyString"
+            },
+            "clientSecret": {
+              "$ref": "#/definitions/X-Tyk-NonEmptyString"
+            },
+            "tokenUrl": {
+              "$ref": "#/definitions/X-Tyk-NonEmptyString"
+            },
+            "scopes": {
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "username": {
+              "$ref": "#/definitions/X-Tyk-NonEmptyString"
+            },
+            "password": {
+              "$ref": "#/definitions/X-Tyk-NonEmptyString"
+            },
+            "header": {
+              "$ref": "#/definitions/X-Tyk-UpstreamAuthSource"
+            },
+            "extraMetadata": {
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "clientId",
+            "tokenUrl",
+            "username",
+            "password"
+          ]
+        }
+      },
+      "required": [
+        "enabled",
+        "allowedAuthorizeTypes"
+      ]
+    },
+    "X-Tyk-NonEmptyString": {
+      "type": "string",
+      "pattern": "\\S+"
+    },
+    "X-Tyk-UpstreamAuthSource": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "name": {
           "type": "string"
         }
       }
