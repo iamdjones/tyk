@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/TykTechnologies/tyk/apidef"
+	"github.com/TykTechnologies/tyk/ctx"
 
 	"github.com/robertkrimen/otto"
 	_ "github.com/robertkrimen/otto/underscore"
@@ -243,10 +244,7 @@ func (d *DynamicMiddleware) ProcessRequest(w http.ResponseWriter, r *http.Reques
 	// make sure request's body can be re-read again
 	nopCloseRequestBody(r)
 
-	r.URL, err = url.Parse(newRequestData.Request.URL)
-	if err != nil {
-		return nil, http.StatusOK
-	}
+	setUrlAndCheckHostRewrite(newRequestData.URL, r, d)
 
 	ignoreCanonical := d.Gw.GetConfig().IgnoreCanonicalMIMEHeaderKey
 	// Delete and set headers
